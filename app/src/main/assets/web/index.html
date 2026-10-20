@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Otether Tethering & Traffic Monitor</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo-box">
+
+                <h1>OTETHER EXTENDER</h1>
+            </div>
+            <p class="subtitle">Wi-Fi Tethering & Proxy Traffic Monitor</p>
+        </header>
+
+        <!-- Main Dashboard View -->
+        <div id="mainOverview">
+            <!-- Error / Warning Banner -->
+            <div id="errorBanner" class="card error-card" style="display: none;">
+                <h3>⚠️ Hotspot Warning / Error</h3>
+                <p id="errorText">Location Services (GPS) must be turned ON to start Hotspot.</p>
+            </div>
+
+            <!-- Mode & Source Selection Card with Dropdown -->
+            <div class="card mode-card">
+                <div class="section-header">
+                    <h2>Step 1: Choose Upstream Internet Source</h2>
+                    <button onclick="openInstructionsModal()" class="btn-guide">ℹ️ Setup & Privacy Guide</button>
+                </div>
+                <div class="dropdown-wrapper">
+                    <select id="sourceSelect" onchange="onSourceDropdownChange()" class="custom-select">
+                        <option value="cellular" id="cellularOptionLabel">📡 Cellular Data (Mobile 4G/5G) - Otether Proxy (192.168.49.1:8080)</option>
+                        <option value="wifi" id="wifiOptionLabel">📶 Wi-Fi Repeater Mode - Otether Proxy (192.168.49.1:8080)</option>
+                    </select>
+                </div>
+                <div id="hardwareNotice" class="hardware-notice">
+                    <span>ℹ️ Connected devices must configure the HTTP proxy at <span class="proxyIpText">192.168.49.1</span>:8080. Only proxy-routed traffic appears here; HTTPS contents remain encrypted.</span>
+                </div>
+            </div>
+
+            <!-- Hotspot Access Point Details Card -->
+            <div class="card hotspot-card">
+                <h2>Wi-Fi Access Point Details</h2>
+                <div id="activeModeBadge" class="mode-badge">
+                    ⚡ <strong>Otether Tethering Active</strong> (Proxy Required: <span class="proxyIpText">192.168.49.1</span>:8080)
+                </div>
+                <div class="ap-grid">
+                    <div class="ap-item">
+                        <span class="label">Hotspot SSID Name</span>
+                        <span id="apSsid" class="ap-value">Otether</span>
+                    </div>
+                    <div class="ap-item">
+                        <span class="label">Wi-Fi Password</span>
+                        <span id="apPassword" class="ap-value">otether123</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card inspection-card">
+                <h2>🔎 Proxy Traffic Inspection</h2>
+                <p class="inspection-desc">Otether records connection metadata such as client, destination host, port, and transferred bytes. HTTPS CONNECT traffic is forwarded as an encrypted tunnel; Otether does not decrypt or store its contents.</p>
+            </div>
+
+            <!-- System Overview -->
+            <div class="card status-card">
+                <div class="status-header">
+                    <h2>System Status</h2>
+                    <div class="status-badge">
+                        <span id="statusDot" class="dot"></span>
+                        <span id="statusText">Stopped</span>
+                    </div>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="label">Total Bandwidth</span>
+                        <span id="bytesTransferred" class="value">0 Bytes</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Connected Clients</span>
+                        <span id="clientCount" class="value">0 Devices</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Gateway Port</span>
+                        <span class="value">8080</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Proxy Events</span>
+                        <span id="packetCount" class="value">0 Events</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Domain Level Bandwidth Breakdown -->
+            <div class="card">
+                <h2>Top Destination Domains & Bandwidth</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Destination Domain / Host</th>
+                                <th>Transferred Bandwidth</th>
+                            </tr>
+                        </thead>
+                        <tbody id="destinationsTableBody">
+                            <tr>
+                                <td colspan="2" class="empty-msg">No domain traffic recorded yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Connected Client Devices Table -->
+            <div class="card">
+                <h2>Connected Client Devices</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Client IP Address</th>
+                                <th>MAC Address</th>
+                                <th>Interface</th>
+                                <th>Bandwidth</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientsTableBody">
+                            <tr>
+                                <td colspan="5" class="empty-msg">No connected devices detected.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Proxy traffic metadata table -->
+            <div class="card">
+                <div class="section-header">
+                    <h2>Live Proxy Traffic Log</h2>
+                    <button onclick="clearLogs()" class="btn-clear">🗑️ Clear Logs</button>
+                </div>
+                <div class="table-container packet-scroll">
+                    <table class="wireshark-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Time</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>Protocol</th>
+                                <th>Length</th>
+                                <th>Info</th>
+                            </tr>
+                        </thead>
+                        <tbody id="packetsTableBody">
+                            <tr>
+                                <td colspan="7" class="empty-msg">Waiting for proxy traffic...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Single Device Detailed Inspection View -->
+        <div id="deviceDetailView" style="display: none;">
+            <div class="card detail-header-card">
+                <button onclick="closeDeviceDetail()" class="btn-back">⬅ Back to Main Overview</button>
+                <h2 id="deviceDetailTitle">Device Traffic: 192.168.49.2</h2>
+            </div>
+
+            <!-- Device Summary Grid -->
+            <div class="card">
+                <h2>Device Network Info</h2>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="label">IP Address</span>
+                        <span id="detailIp" class="value">192.168.49.2</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">MAC Address</span>
+                        <span id="detailMac" class="value">00:00:00:00:00:00</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Interface</span>
+                        <span id="detailIface" class="value">p2p-wlan0-0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="label">Device Bandwidth</span>
+                        <span id="detailBytes" class="value">0 Bytes</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Device Specific Domain Traffic -->
+            <div class="card">
+                <h2>Domain Traffic Breakdown for THIS Device</h2>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Destination Domain / Host</th>
+                                <th>Transferred Bandwidth</th>
+                            </tr>
+                        </thead>
+                        <tbody id="deviceDestinationsBody">
+                            <tr>
+                                <td colspan="2" class="empty-msg">No traffic recorded for this device.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Device-specific proxy metadata -->
+            <div class="card">
+                <div class="section-header">
+                    <h2>Proxy Traffic Log (This Device)</h2>
+                    <span class="live-tag">● LIVE</span>
+                </div>
+                <div class="table-container packet-scroll">
+                    <table class="wireshark-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Time</th>
+                                <th>Source</th>
+                                <th>Destination</th>
+                                <th>Protocol</th>
+                                <th>Length</th>
+                                <th>Info</th>
+                            </tr>
+                        </thead>
+                        <tbody id="devicePacketsBody">
+                            <tr>
+                                <td colspan="7" class="empty-msg">No proxy events recorded for this device yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Connection and privacy information -->
+    <div id="instructionsModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>ℹ️ Otether Connection & Privacy Guide</h2>
+                <button onclick="closeInstructionsModal()" class="btn-close-modal">✖</button>
+            </div>
+            <div class="modal-body">
+                <div class="guide-step">
+                    <h3>🌐 Step 1: Connect Client Device via Proxy</h3>
+                    <p>1. Connect a device you own or are authorized to administer to the Otether Wi-Fi network:</p>
+                    <p>&nbsp;&nbsp;• <strong>SSID:</strong> <code id="apSsidModal">DIRECT-xx-Otether</code></p>
+                    <p>&nbsp;&nbsp;• <strong>Password:</strong> <code id="apPasswordModal">otether123</code></p>
+                    <p>2. Open Wi-Fi settings on the client device and configure <strong>Manual HTTP Proxy</strong>:</p>
+                    <p>&nbsp;&nbsp;• <strong>Proxy IP / Host:</strong> <code class="proxyIpText">192.168.49.1</code></p>
+                    <p>&nbsp;&nbsp;• <strong>Proxy Port:</strong> <code>8080</code></p>
+                    <p>3. Open Web Control Dashboard in any browser: <code class="webPanelUrl">http://192.168.49.1:8081</code></p>
+                </div>
+
+                <div class="guide-step">
+                    <h3>🔐 Step 2: Understand what is recorded</h3>
+                    <p>Otether only sees traffic that a client explicitly sends through its HTTP proxy. It records connection metadata, not message bodies or credentials.</p>
+                    <p>HTTPS connections use an encrypted CONNECT tunnel. Their contents remain encrypted end-to-end; no Otether CA certificate is required or provided.</p>
+                    <p>Only inspect traffic on devices and networks you own or are authorized to administer.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="closeInstructionsModal()" class="btn-modal-ok">Got It!</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
